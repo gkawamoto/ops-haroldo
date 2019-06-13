@@ -1,3 +1,4 @@
+const child_process = require('child_process');
 const events = require('events');
 const fs = require('fs');
 const path = require('path');
@@ -18,14 +19,62 @@ class Program {
 	}
 	async main() {
 		try {
-			await this.program();
+			await this.initialize()
+			await this.run();
 		} catch (e) {
 			logger.error(e);
 			process.exit(1);
 		}
 	}
 
-	program() {
+	getInstalledDependencies() {
+		return new Promise((success, fail) => {
+			try {
+				success(JSON.parse(child_process.execSync('npm ls --json')).dependencies);
+			} catch (e) {
+				fail(e);
+			}
+		});
+	}
+
+	initialize() {
+		return new Promise(async (success, fail) => {
+			let dependencies = await this.getDependencies();
+			let installedDependencies = await this.getInstalledDependencies();
+			for (let i in dependencies) {
+				try {
+					if (installedDependencies[i] != null) {
+						if (installedDependencies[i].from == i + '@' + dependencies[i]) {
+							logger.info('dependencia ' + i + '@' + dependencies[i] + ' ja instalada. SKIP');
+							continue;
+						}
+					}
+					child_process.execSync('npm install ' + i + '@' + dependencies[i]);
+				} catch (e) {
+					return fail(e);
+				}
+			}
+			success();
+		});
+	}
+
+	getScriptsFolder() {
+		return path.resolve(process.env.SCRIPT_PATH || path.join('.', 'scripts'));
+	}
+
+	getDependencies() {
+		return new Promise((success, fail) => {
+			let dir = this.getScriptsFolder();
+			try {
+				success(JSON.parse(fs.readFileSync(path.join(dir, 'dependencies.json'), 'utf8')));
+			} catch (e) {
+				logger.error(e);
+				success([]);
+			}
+		});
+	}
+
+	run() {
 		return new Promise(async (success, fail) => {
 			process.env.MATTERMOST_USE_TLS = process.env.MATTERMOST_USE_TLS || 'true';
 			try {
@@ -88,7 +137,7 @@ class Program {
 
 	prepareScripts() {
 		return new Promise((success, fail) => {
-			let dir = path.resolve(process.env.SCRIPT_PATH || path.join('.', 'scripts'));
+			let dir = this.getScriptsFolder();
 			fs.readdir(dir, async (err, files) => {
 				if (err != null) {
 					return fail(err);
