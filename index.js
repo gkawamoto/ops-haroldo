@@ -227,6 +227,9 @@ class Bot extends events.EventEmitter {
 				}
 				delete message.data.post;
 			}
+			if (message.data.message != null) {
+				message.data.normalized = message.data.message.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+			}
 			if (message.data.mentions != undefined) {
 				message.data.mentions = JSON.parse(message.data.mentions);
 			}
