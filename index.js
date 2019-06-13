@@ -143,8 +143,9 @@ class Program {
 					return fail(err);
 				}
 				try {
-					for (let k = 0; k < files.length; k++) {
+					for (let k = 0; k < files.sort().length; k++) {
 						if (files[k].endsWith('.js')) {
+							logger.info('inicializando script ' + files[k]);
 							await this.initScript(path.join(dir, files[k]));
 						}
 					}
@@ -159,6 +160,9 @@ class Program {
 	initScript(scriptPath) {
 		return new Promise((success, fail) => {
 			let script = require(scriptPath);
+			if (script.init == null) {
+				return success();
+			}
 			try {
 				for (let k = 0; k < this.bots.length; k++) {
 					let bot = this.bots[k];
@@ -196,12 +200,12 @@ class Bot extends events.EventEmitter {
 			try {
 				let client = this.client = new MatterMostClient(this.host, '', {});
 				client.on('connected', () => success());
-				client.on('error', (e) => console.error(e));
+				client.on('error', (e) => logger.error(e));
 				client.on('message', async (message) => {
 					try {
 						await this.handleMessage(message);
 					} catch (e) {
-						console.error(e);
+						logger.error(e);
 					}
 				});
 				client.tokenLogin(this.token);
@@ -222,7 +226,11 @@ class Bot extends events.EventEmitter {
 			if (message.data.mentions != undefined) {
 				message.data.mentions = JSON.parse(message.data.mentions);
 			}
-			console.log(message);
+			message.replies = 0;
+			message.reply = (what) => {
+				message.replies++;
+				return this.send(message.data.channel_id, what);
+			}
 			if (message.data.user_id == this.client.me.id) {
 				return success();
 			}
