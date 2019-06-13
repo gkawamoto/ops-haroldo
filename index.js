@@ -146,7 +146,11 @@ class Program {
 					for (let k = 0; k < files.sort().length; k++) {
 						if (files[k].endsWith('.js')) {
 							logger.info('inicializando script ' + files[k]);
-							await this.initScript(path.join(dir, files[k]));
+							try {
+								await this.initScript(path.join(dir, files[k]));
+							} catch (e) {
+								logger.error(e);
+							}
 						}
 					}
 					return success();
@@ -159,19 +163,19 @@ class Program {
 
 	initScript(scriptPath) {
 		return new Promise((success, fail) => {
-			let script = require(scriptPath);
-			if (script.init == null) {
-				return success();
-			}
 			try {
+				let script = require(scriptPath);
+				if (script.init == null) {
+					return success();
+				}
 				for (let k = 0; k < this.bots.length; k++) {
 					let bot = this.bots[k];
 					script.init(bot.client.me, new BotListener(bot));
 				}
+				return success();
 			} catch (e) {
-				return fail(e);
+				fail(e);
 			}
-			return success();
 		});
 	}
 }
