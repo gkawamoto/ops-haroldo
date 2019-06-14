@@ -238,6 +238,7 @@ class Bot extends events.EventEmitter {
 				message.replies++;
 				return this.send(message.data.channel_id, what);
 			}
+			console.log(message);
 			if (message.data.user_id == this.client.me.id) {
 				return success();
 			}
@@ -247,6 +248,7 @@ class Bot extends events.EventEmitter {
 			}
 			try {
 				let kind = await this.solveMessageKind(message);
+				logger.debug(kind);
 				//this.emit(this.client.me.username + '/' + kind, message);
 				//this.emit('*/' + kind, message);
 				this.emit(kind, message);
@@ -261,7 +263,7 @@ class Bot extends events.EventEmitter {
 			if (message.data.channel_type == 'D') {
 				return success(DIRECT);
 			}
-			if (message.data.channel_type == 'O') {
+			if (message.data.channel_type == 'O' || message.data.channel_type == 'P') {
 				let me = this.client.me;
 				if (message.data.type == 'system_add_to_channel') {
 					if (message.data.addedUserId == me.id) {
