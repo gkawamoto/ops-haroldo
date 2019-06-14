@@ -1,4 +1,5 @@
 FROM node:10-alpine
+RUN apk add --no-cache git openssh-client
 WORKDIR /app/
 VOLUME /app/scripts
 COPY package.json /app/
